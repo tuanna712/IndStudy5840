@@ -8,7 +8,7 @@ class FISTA(Optimizer):
 
         for group in self.param_groups:
             group['y'] = [p.clone().detach() for p in group['params']]
-            group['k'] = 1
+#             group['k'] = 1
 
     def step(self, closure=None):
         if closure is None:
@@ -20,7 +20,8 @@ class FISTA(Optimizer):
 
             # Loop over ministeps
             for _ in range(ministeps):
-                k = group['k']
+#                 k = group['k']
+                k = 1
 
                 with torch.enable_grad():
                     loss = closure()
@@ -48,6 +49,6 @@ class FISTA(Optimizer):
                     p.data = x_next
                     group['y'][i].data = y_next
             
-                group['k'] += 1
+#                 group['k'] += 1
 
         return loss
