@@ -7,27 +7,35 @@ class ManyStepSGD(Optimizer):
         super(ManyStepSGD, self).__init__(params, defaults)
 
     @torch.no_grad()
-    def step(self):
+    def step(self, closure=None):
+        if closure is None:
+            raise RuntimeError("ManyStepSGD requires a closure to recompute gradients.")
+        
+        loss = None
         for group in self.param_groups:
             lr, momentum, n_step = group['lr'], group['momentum'], group['n_step']
             
-            for param in group['params']:
-                if param.grad is None:
-                    continue
-                    
-                grad = param.grad 
+            for _ in range(n_step):
+                # Recompute loss and gradients
+                with torch.enable_grad():
+                    loss = closure()
 
-                if momentum != 0:
-                    param_state = self.state[param]
-                    if 'momentum_buffer' not in param_state:
-                        buf = torch.clone(grad).detach()
-                        param_state['momentum_buffer'] = buf
-                    else:
-                        buf = param_state['momentum_buffer']
-                        buf.mul_(momentum).add_(grad)
+                for param in group['params']:
+                    if param.grad is None:
+                        continue
 
-                for _ in range(n_step):
-                    # Update param = param - lr * grad
-                    param.add_(grad, alpha=-lr)
-                    # Update the grad
                     grad = param.grad
+                    if momentum != 0:
+                        param_state = self.state[param]
+                        if 'momentum_buffer' not in param_state:
+                            buf = torch.clone(grad).detach()
+                            param_state['momentum_buffer'] = buf
+                        else:
+                            buf = param_state['momentum_buffer']
+                            buf.mul_(momentum).add_(grad)
+                        grad = buf
+
+                    # Parameter update
+                    param.add_(grad, alpha=-lr)
+
+        return loss
