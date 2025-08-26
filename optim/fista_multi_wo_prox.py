@@ -17,11 +17,10 @@ class FISTA(Optimizer):
         loss = None
         for group in self.param_groups:
             lr, ministeps = group['lr'], group['ministeps']
-
+            k = 0
+            
             # Loop over ministeps
-            for _ in range(ministeps):
-#                 k = group['k']
-                k = 1
+            for k in range(ministeps):
 
                 with torch.enable_grad():
                     loss = closure()
@@ -42,13 +41,12 @@ class FISTA(Optimizer):
                     # Question: Should we update multi-step here, inside the loop
 
                     #  y_{k+1} = x_{k+1} + (k / (k + 3)) * (x_{k+1} - x_k)
-                    momentum_coeff = k / (k + 3)
+                    momentum_coeff = (k-1) / (k + 2)
                     y_next = x_next + momentum_coeff * (x_next - x_k)
 
                     # Update
                     p.data = x_next
                     group['y'][i].data = y_next
+                    
             
-#                 group['k'] += 1
-
         return loss
